@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <h1 class="mb-4">🔍 Finger Command</h1>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">User Lookup</h5>
+                        <form method="POST" action="{{ url_for('finger') }}">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username (optional)</label>
+                                <input type="text" class="form-control" id="username" name="username" 
+                                       value="{{ username or '' }}" 
+                                       placeholder="Enter username or email (e.g., user@domain.com)"
+                                       pattern="[a-zA-Z0-9.\-_@]*"
+                                       title="Alphanumeric characters, dots, hyphens, underscores, and @ symbol allowed">
+                                <div class="form-text">
+                                    Leave empty to show all logged-in users, or enter a username or email address.
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Run Finger
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary ms-2" onclick="clearForm()">
+                                Clear
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h6 class="card-title">ℹ️ About Finger</h6>
+                        <p class="card-text small">
+                            The finger command displays information about users on the system, including:
+                        </p>
+                        <ul class="small">
+                            <li>Login name and real name</li>
+                            <li>Terminal and login time</li>
+                            <li>Idle time</li>
+                            <li>Home directory and shell</li>
+                            <li>Plan and project files (if available)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            {% if username %}
+                                Results for "{{ username }}"
+                            {% else %}
+                                System Users
+                            {% endif %}
+                        </h5>
+                        {% if result or error %}
+                            <small class="text-muted">
+                                {{ moment().format('YYYY-MM-DD HH:mm:ss') if moment else '' }}
+                            </small>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        {% if error %}
+                            <div class="alert alert-danger" role="alert">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Error:</strong> {{ error }}
+                            </div>
+                        {% elif result %}
+                            <div class="alert alert-success mb-3" role="alert">
+                                <i class="fas fa-check-circle"></i>
+                                Command executed successfully
+                            </div>
+                            <div class="finger-output">
+                                <pre class="rounded"><code>{{ result }}</code></pre>
+                            </div>
+                        {% else %}
+                            <div class="text-center text-muted py-5">
+                                <i class="fas fa-terminal fa-3x mb-3"></i>
+                                <p>Enter a username and click "Run Finger" to see user information,<br>
+                                   or leave username empty to see all logged-in users.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-home"></i> Back to Home
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function clearForm() {
+    document.getElementById('username').value = '';
+    // Optionally reload the page to clear results
+    window.location.href = "{{ url_for('finger') }}";
+}
+
+// Auto-focus on username input when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('username').focus();
+});
+</script>
+{% endblock %}

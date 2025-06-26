@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="jumbotron bg-light p-5 rounded">
+            <h1 class="display-4">Welcome to Finger Web!</h1>
+            <p class="lead">A simple web interface to the unix finger command.</p>
+            <hr class="my-4">
+            <p><a href="https://en.wikipedia.org/wiki/Finger_(protocol)">Finger</a> is a utility from 1971 written to discover user information on remote unix systems. While it's use has fallen off, you can sometimes still find active finger servers where users provide information about themselves.</p><p>See <a href="/finger/waffles@yttrx.com">waffles@yttrx.com</a> as an example :)</p>
+            <hl>
+            <p>This site was written by <a href="https://yttrx.com/@waffles">waffles</a> but inspired by <a href="https://benbrown.com">Ben Brown's</a> <a href="https://happynetbox.com/">happy net box</a> project.</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

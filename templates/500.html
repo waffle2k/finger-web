@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-6 mx-auto text-center">
+        <div class="card">
+            <div class="card-body">
+                <h1 class="display-1 text-danger">500</h1>
+                <h2 class="mb-3">Internal Server Error</h2>
+                <p class="lead">
+                    Something went wrong on our end. We're working to fix the issue. Please try again later.
+                </p>
+                <hr class="my-4">
+                <div class="d-grid gap-2 d-md-block">
+                    <a href="{{ url_for('index') }}" class="btn btn-primary">Go Home</a>
+                    <a href="javascript:location.reload()" class="btn btn-outline-secondary">Try Again</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <div class="alert alert-info" role="alert">
+                <strong>Need help?</strong> If this problem persists, please <a href="{{ url_for('contact') }}" class="alert-link">contact us</a> and let us know what you were trying to do.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
