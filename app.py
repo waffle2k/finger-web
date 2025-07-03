@@ -24,6 +24,92 @@ def allowed_file(filename):
     return ('.' in filename and 
             filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS'])
 
+def safe_decode_output(raw_output):
+    """
+    Safely decode subprocess output with fallback encoding strategies.
+    
+    Args:
+        raw_output (bytes): Raw bytes output from subprocess
+        
+    Returns:
+        str: Decoded string output
+    """
+    if isinstance(raw_output, str):
+        return raw_output
+    
+    # List of encodings to try in order
+    encodings = ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
+    
+    for encoding in encodings:
+        try:
+            return raw_output.decode(encoding)
+        except (UnicodeDecodeError, LookupError):
+            continue
+    
+    # If all encodings fail, use utf-8 with error handling
+    try:
+        return raw_output.decode('utf-8', errors='replace')
+    except Exception:
+        # Last resort: convert to string representation
+        return str(raw_output, errors='ignore')
+
+def run_finger_command(cmd):
+    """
+    Execute finger command with robust encoding handling.
+    
+    Args:
+        cmd (list): Command list to execute
+        
+    Returns:
+        tuple: (success, result_or_error, is_error)
+    """
+    try:
+        # First try with text=True (UTF-8 decoding)
+        process = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if process.returncode == 0:
+            result = process.stdout
+            if not result.strip():
+                result = "No information available."
+            return True, result, False
+        else:
+            error = process.stderr or "Finger command failed."
+            return False, error, True
+            
+    except UnicodeDecodeError:
+        # Handle UTF-8 decoding error by using binary mode
+        try:
+            process = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=False,  # Get raw bytes
+                timeout=10
+            )
+            
+            if process.returncode == 0:
+                result = safe_decode_output(process.stdout)
+                if not result.strip():
+                    result = "No information available."
+                return True, result, False
+            else:
+                error = safe_decode_output(process.stderr) or "Finger command failed."
+                return False, error, True
+                
+        except Exception as e:
+            return False, f"Encoding error occurred: {str(e)}", True
+            
+    except subprocess.TimeoutExpired:
+        return False, "Command timed out. Please try again.", True
+    except FileNotFoundError:
+        return False, "Finger command not available on this system.", True
+    except Exception as e:
+        return False, f"An error occurred: {str(e)}", True
+
 @app.route('/')
 def index():
     """Home page route"""
@@ -37,41 +123,25 @@ def finger():
     username = request.args.get('user', '') or request.form.get('username', '')
     
     if request.method == 'POST' or username:
-        try:
-            # Sanitize username input
-            if username:
-                # Allow alphanumeric characters, dots, hyphens, underscores, and @ symbol for email-style usernames
-                if not all(c.isalnum() or c in '.-_@' for c in username):
-                    error = "Invalid username format. Only alphanumeric characters, dots, hyphens, underscores, and @ symbol are allowed."
-                else:
-                    # Execute finger command with specific user
-                    cmd = ['finger', username]
+        # Sanitize username input
+        if username:
+            # Allow alphanumeric characters, dots, hyphens, underscores, and @ symbol for email-style usernames
+            if not all(c.isalnum() or c in '.-_@' for c in username):
+                error = "Invalid username format. Only alphanumeric characters, dots, hyphens, underscores, and @ symbol are allowed."
             else:
-                # Execute finger command without user (show all logged in users)
-                cmd = ['finger']
-            
-            if not error:
-                # Execute the command safely
-                process = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=10
-                )
-                
-                if process.returncode == 0:
-                    result = process.stdout
-                    if not result.strip():
-                        result = "No information available."
-                else:
-                    error = process.stderr or "Finger command failed."
-                    
-        except subprocess.TimeoutExpired:
-            error = "Command timed out. Please try again."
-        except FileNotFoundError:
-            error = "Finger command not available on this system."
-        except Exception as e:
-            error = f"An error occurred: {str(e)}"
+                # Execute finger command with specific user
+                cmd = ['finger', username]
+        else:
+            # Execute finger command without user (show all logged in users)
+            cmd = ['finger']
+        
+        if not error:
+            # Execute the command with robust encoding handling
+            success, output, is_error = run_finger_command(cmd)
+            if success:
+                result = output
+            else:
+                error = output
     
     return render_template('finger.html', title='Finger', result=result, error=error, username=username)
 
@@ -81,37 +151,21 @@ def finger_direct(username):
     result = None
     error = None
     
-    try:
-        # Sanitize username input
-        if username:
-            # Allow alphanumeric characters, dots, hyphens, underscores, and @ symbol for email-style usernames
-            if not all(c.isalnum() or c in '.-_@' for c in username):
-                error = "Invalid username format. Only alphanumeric characters, dots, hyphens, underscores, and @ symbol are allowed."
+    # Sanitize username input
+    if username:
+        # Allow alphanumeric characters, dots, hyphens, underscores, and @ symbol for email-style usernames
+        if not all(c.isalnum() or c in '.-_@' for c in username):
+            error = "Invalid username format. Only alphanumeric characters, dots, hyphens, underscores, and @ symbol are allowed."
+        else:
+            # Execute finger command with specific user
+            cmd = ['finger', username]
+            
+            # Execute the command with robust encoding handling
+            success, output, is_error = run_finger_command(cmd)
+            if success:
+                result = output
             else:
-                # Execute finger command with specific user
-                cmd = ['finger', username]
-                
-                # Execute the command safely
-                process = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=10
-                )
-                
-                if process.returncode == 0:
-                    result = process.stdout
-                    if not result.strip():
-                        result = "No information available."
-                else:
-                    error = process.stderr or "Finger command failed."
-                    
-    except subprocess.TimeoutExpired:
-        error = "Command timed out. Please try again."
-    except FileNotFoundError:
-        error = "Finger command not available on this system."
-    except Exception as e:
-        error = f"An error occurred: {str(e)}"
+                error = output
     
     return render_template('finger.html', title=f'Finger - {username}', result=result, error=error, username=username)
 
