@@ -1,307 +1,164 @@
-# Finger Web Flask Application
+# finger-web
 
-A simple, modern Flask web application demonstrating basic web development concepts with clean code structure, responsive design, and best practices.
+A Flask web application that fronts a finger daemon, with a JSON API, a CLI client, and an MCP server for Claude integration.
 
-## 🚀 Features
+## Components
 
-- **Multiple Routes**: Home, About, Contact pages with clean navigation
-- **Contact Form**: Functional contact form with validation and flash messages
-- **JSON API**: RESTful API endpoints for data exchange
-- **Responsive Design**: Mobile-first design using Bootstrap 5
-- **Error Handling**: Custom 404 and 500 error pages
-- **Modern UI**: Clean, professional interface with animations
-- **Form Validation**: Client-side and server-side validation
-- **Configuration Management**: Environment-based configuration
+| Path | Description |
+|------|-------------|
+| `app.py` | Flask web app and JSON API |
+| `cli/finger.py` | Command-line client |
+| `mcp/server.py` | MCP server for Claude |
 
-## 📁 Project Structure
+---
 
-```
-finger-web/
-├── app.py                 # Main Flask application
-├── config.py              # Configuration settings
-├── requirements.txt       # Python dependencies
-├── README.md             # Project documentation
-├── .gitignore            # Git ignore file
-├── Dockerfile            # Docker container configuration
-├── .dockerignore         # Docker ignore file
-├── docker-compose.yml    # Docker Compose configuration
-├── templates/            # HTML templates
-│   ├── base.html         # Base template with navigation
-│   ├── index.html        # Home page
-│   ├── about.html        # About page
-│   ├── contact.html      # Contact form
-│   ├── 404.html          # 404 error page
-│   └── 500.html          # 500 error page
-└── static/               # Static assets
-    ├── css/
-    │   └── style.css     # Custom styles
-    └── js/
-        └── main.js       # JavaScript functionality
-```
+## Web App
 
-## 🛠️ Technologies Used
+### Requirements
 
-### Backend
-- **Python 3.x** - Programming language
-- **Flask 2.3.3** - Web framework
-- **Jinja2** - Template engine
-- **Werkzeug** - WSGI toolkit
+- Python 3.9+
+- A `finger` binary available on the server's PATH
 
-### Frontend
-- **HTML5** - Markup language
-- **CSS3** - Styling with custom animations
-- **JavaScript (ES6+)** - Interactive functionality
-- **Bootstrap 5.3** - CSS framework for responsive design
-
-## 📋 Prerequisites
-
-- Python 3.7 or higher
-- pip (Python package installer)
-- Virtual environment (recommended)
-
-## 🚀 Installation & Setup
-
-### 1. Clone or Download the Project
-
-```bash
-# If using git
-git clone <repository-url>
-cd finger-web
-
-# Or download and extract the project files
-```
-
-### 2. Create Virtual Environment (Recommended)
-
-```bash
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
-```
-
-### 3. Install Dependencies
+### Installation
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Run the Application
+### Configuration
+
+All settings are read from environment variables.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SECRET_KEY` | Flask secret key | `dev-secret-key-change-in-production` |
+| `FLASK_DEBUG` | Enable debug mode | `True` |
+| `BASIC_AUTH_USERS` | Comma-separated `user:pass` pairs for upload auth | _(none — upload disabled)_ |
+| `SCP_ENABLED` | Enable SCP transfer of uploaded plan files | `false` |
+| `REMOTE_HOST` | Remote host for SCP | — |
+| `REMOTE_USER` | Remote user for SCP | — |
+| `REMOTE_PATH` | Remote path for SCP destination | — |
+| `REMOTE_PORT` | Remote SSH port | `22` |
+| `REMOTE_PRIVATE_KEY` | Path to SSH private key | — |
+
+### Running
 
 ```bash
 python app.py
-```
-
-The application will start on `http://localhost:5000`
-
-## 🌐 Available Routes
-
-| Route | Method | Description |
-|-------|--------|-------------|
-| `/` | GET | Home page |
-| `/about` | GET | About page |
-| `/contact` | GET, POST | Contact form |
-| `/api/hello` | GET | Simple JSON API endpoint |
-| `/api/info` | GET | Application information API |
-
-## 🔧 Configuration
-
-The application uses environment variables for configuration. You can set these in your environment or create a `.env` file:
-
-```bash
-# Flask Configuration
-FLASK_DEBUG=True
-SECRET_KEY=your-secret-key-here
-
-# Database (for future use)
-DATABASE_URL=sqlite:///app.db
-
-# Mail Configuration (for future use)
-MAIL_SERVER=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USE_TLS=True
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-app-password
-```
-
-## 📱 API Endpoints
-
-### GET /api/hello
-Returns a simple greeting message.
-
-**Response:**
-```json
-{
-    "message": "Hello from Flask API!",
-    "status": "success",
-    "version": "1.0"
-}
-```
-
-### GET /api/info
-Returns application information and available routes.
-
-**Response:**
-```json
-{
-    "app_name": "Finger Web Flask App",
-    "routes": ["/", "/about", "/contact", "/api/hello", "/api/info"],
-    "framework": "Flask"
-}
-```
-
-## 🎨 Customization
-
-### Styling
-- Edit `static/css/style.css` to customize the appearance
-- The app uses Bootstrap 5 classes for responsive design
-- Custom CSS variables and animations are included
-
-### JavaScript
-- Modify `static/js/main.js` for additional functionality
-- Includes form validation, animations, and keyboard shortcuts
-- API helper functions are available
-
-### Templates
-- All HTML templates extend `templates/base.html`
-- Use Jinja2 template syntax for dynamic content
-- Bootstrap components are readily available
-
-## 🔍 Features in Detail
-
-### Contact Form
-- Client-side validation with real-time feedback
-- Server-side validation and sanitization
-- Flash messages for user feedback
-- Form submission with loading states
-
-### Responsive Design
-- Mobile-first approach
-- Bootstrap grid system
-- Custom breakpoints and animations
-- Touch-friendly interface
-
-### Error Handling
-- Custom 404 and 500 error pages
-- Graceful error handling in routes
-- User-friendly error messages
-
-### JavaScript Features
-- Form validation and enhancement
-- Smooth scrolling navigation
-- Card animations on scroll
-- Keyboard shortcuts (Alt+H, Alt+A, Alt+C)
-- API interaction helpers
-
-## 🚀 Deployment
-
-### Development
-```bash
-python app.py
-```
-
-### Docker Deployment
-
-#### Option 1: Using Docker directly
-```bash
-# Build the Docker image
-docker build -t finger-web .
-
-# Run the container
-docker run -d -p 5000:5000 --name finger-web-app finger-web
-```
-
-#### Option 2: Using Docker Compose (Recommended)
-```bash
-# Build and start the application
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop the application
-docker-compose down
-```
-
-#### Docker Commands
-```bash
-# Build image
-docker build -t finger-web .
-
-# Run container with environment variables
-docker run -d \
-  -p 5000:5000 \
-  -e FLASK_ENV=production \
-  -e SECRET_KEY=your-secret-key \
-  --name finger-web-app \
-  finger-web
-
-# View container logs
-docker logs finger-web-app
-
-# Stop and remove container
-docker stop finger-web-app
-docker rm finger-web-app
-```
-
-### Production
-For production deployment, consider using:
-- **Docker** for containerization (included)
-- **Docker Compose** for orchestration (included)
-- **Gunicorn** as WSGI server
-- **Nginx** as reverse proxy
-- **Heroku**, **DigitalOcean**, or **AWS** for hosting
-
-Example with Gunicorn:
-```bash
-pip install gunicorn
+# or with gunicorn
 gunicorn -w 4 -b 0.0.0.0:5000 app:app
 ```
 
-## 🔒 Security Considerations
+### Docker
 
-- Change the `SECRET_KEY` in production
-- Use environment variables for sensitive data
-- Enable HTTPS in production
-- Implement rate limiting for forms
-- Validate and sanitize all user inputs
-
-## 🤝 Contributing
-
-1. Fork the project
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📝 License
-
-This project is open source and available under the [MIT License](LICENSE).
-
-## 📞 Support
-
-If you encounter any issues or have questions:
-1. Check the existing documentation
-2. Review the code comments
-3. Test in a clean virtual environment
-4. Create an issue with detailed information
-
-## 🎯 Future Enhancements
-
-- Database integration with SQLAlchemy
-- User authentication and sessions
-- Email functionality for contact form
-- Admin dashboard
-- API rate limiting
-- Unit tests
-- CI/CD pipeline
-- Kubernetes deployment manifests
-- Monitoring and logging integration
+```bash
+docker-compose up -d
+```
 
 ---
 
-**Built with ❤️ using Flask and Bootstrap**
+## API
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/finger` | GET/POST | — | Web UI finger query |
+| `/finger/<username>` | GET | — | Web UI finger query (URL form) |
+| `/api/finger` | GET | — | JSON: list logged-in users |
+| `/api/finger/<username>` | GET | — | JSON: finger a specific user |
+| `/api/upload` | POST | Basic | Upload a plan file |
+| `/api/info` | GET | — | API metadata |
+
+### Example
+
+```bash
+curl http://localhost:5000/api/finger/pete@peteftw.com
+```
+
+```json
+{
+  "status": "success",
+  "username": "pete@peteftw.com",
+  "result": "Login: pete\t\t\tName: Pete Blair\n..."
+}
+```
+
+---
+
+## CLI
+
+### Installation
+
+```bash
+pip install -r cli/requirements.txt
+```
+
+### Configuration
+
+```bash
+export FINGER_WEB_URL=http://localhost:5000
+export FINGER_USER=youruser      # only needed for plan uploads
+export FINGER_PASS=yourpassword  # only needed for plan uploads
+```
+
+### Usage
+
+```bash
+# Finger a user
+python cli/finger.py query pete@peteftw.com
+
+# Upload your plan file
+python cli/finger.py plan ~/.plan
+```
+
+---
+
+## MCP Server
+
+Exposes finger query and plan upload as tools for Claude.
+
+### Installation
+
+```bash
+pip install -r mcp/requirements.txt
+```
+
+### Configuration
+
+```bash
+export FINGER_WEB_URL=http://localhost:5000
+export FINGER_USER=youruser      # only needed for upload_plan tool
+export FINGER_PASS=yourpassword  # only needed for upload_plan tool
+```
+
+### Running
+
+```bash
+python mcp/server.py
+```
+
+### Claude Desktop configuration
+
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "finger": {
+      "command": "python",
+      "args": ["/path/to/finger-web/mcp/server.py"],
+      "env": {
+        "FINGER_WEB_URL": "http://localhost:5000",
+        "FINGER_USER": "youruser",
+        "FINGER_PASS": "yourpassword"
+      }
+    }
+  }
+}
+```
+
+### Available tools
+
+| Tool | Description |
+|------|-------------|
+| `finger_user(username)` | Query finger info for a user, or leave empty to list logged-in users |
+| `upload_plan(filename, content)` | Upload or update a plan file |
