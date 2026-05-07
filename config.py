@@ -30,12 +30,12 @@ class Config:
     SCP_ENABLED = os.environ.get('SCP_ENABLED', 'false').lower() == 'true'
     
     # Basic authentication credentials - multiple users support
-    # Environment variable format: "user1:pass1,user2:pass2,user3:pass3"
-    BASIC_AUTH_USERS_STR = os.environ.get('BASIC_AUTH_USERS') or 'admin:password,uploader:upload123,user:user123'
-    
+    # Environment variable format: "user1:pass1,user2:pass2"
+    BASIC_AUTH_USERS_STR = os.environ.get('BASIC_AUTH_USERS', '')
+
     # Parse users string into dictionary
     BASIC_AUTH_USERS = {}
     for user_pass in BASIC_AUTH_USERS_STR.split(','):
         if ':' in user_pass:
-            username, password = user_pass.strip().split(':', 1)  # Split only on first colon
+            username, password = user_pass.strip().split(':', 1)
             BASIC_AUTH_USERS[username.strip()] = password.strip()

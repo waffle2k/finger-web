@@ -169,25 +169,36 @@ def finger_direct(username):
     
     return render_template('finger.html', title=f'Finger - {username}', result=result, error=error, username=username)
 
-@app.route('/api/hello')
-def api_hello():
-    """Simple JSON API endpoint"""
-    return jsonify({
-        'message': 'Hello from Flask API!',
-        'status': 'success',
-        'version': '1.0'
-    })
+@app.route('/api/finger')
+@app.route('/api/finger/<path:username>')
+def api_finger(username=None):
+    """JSON API endpoint for finger queries"""
+    if username is None:
+        username = request.args.get('user', '')
+
+    if username:
+        if not all(c.isalnum() or c in '.-_@' for c in username):
+            return jsonify({'error': 'Invalid username', 'status': 'error'}), 400
+        cmd = ['finger', username]
+    else:
+        cmd = ['finger']
+
+    success, output, is_error = run_finger_command(cmd)
+    if success:
+        return jsonify({'result': output, 'username': username, 'status': 'success'})
+    return jsonify({'error': output, 'status': 'error'}), 500
 
 @app.route('/api/info')
 def api_info():
     """API info endpoint"""
     return jsonify({
-        'app_name': 'Finger Web Flask App',
+        'app_name': 'finger-web',
         'routes': [
             '/',
             '/finger',
             '/finger/<username>',
-            '/api/hello',
+            '/api/finger',
+            '/api/finger/<username>',
             '/api/info',
             '/api/upload'
         ],
