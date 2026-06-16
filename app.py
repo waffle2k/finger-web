@@ -167,7 +167,7 @@ def finger_direct(username):
             else:
                 error = output
     
-    return render_template('finger.html', title=f'Finger - {username}', result=result, error=error, username=username, direct=True)
+    return render_template('finger.html', title=f'Finger - {username}', result=result, error=error, username=username)
 
 @app.route('/api/finger')
 @app.route('/api/finger/<path:username>')
