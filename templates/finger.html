@@ -1,10 +1,59 @@
 {% extends "base.html" %}
 
 {% block content %}
+{% if direct %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h1 class="h5 mb-0">🔍 Finger Command</h1>
+            <form method="POST" action="{{ url_for('finger') }}" class="d-flex" role="search">
+                <input type="text" class="form-control form-control-sm me-2" id="username" name="username"
+                       value="{{ username or '' }}"
+                       placeholder="user@domain.com"
+                       pattern="[a-zA-Z0-9.\-_@]*"
+                       title="Alphanumeric characters, dots, hyphens, underscores, and @ symbol allowed"
+                       style="max-width: 260px;">
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="fas fa-search"></i> Finger
+                </button>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    {% if username %}
+                        Results for "{{ username }}"
+                    {% else %}
+                        System Users
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Error:</strong> {{ error }}
+                    </div>
+                {% elif result %}
+                    <div class="finger-output">
+                        <pre class="rounded mb-0"><code>{{ result }}</code></pre>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-terminal fa-3x mb-3"></i>
+                        <p>No information available.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
 <div class="row">
     <div class="col-lg-10 mx-auto">
         <h1 class="mb-4">🔍 Finger Command</h1>
-        
+
         <div class="row">
             <div class="col-md-4">
                 <div class="card">
@@ -13,8 +62,8 @@
                         <form method="POST" action="{{ url_for('finger') }}">
                             <div class="mb-3">
                                 <label for="username" class="form-label">Username (optional)</label>
-                                <input type="text" class="form-control" id="username" name="username" 
-                                       value="{{ username or '' }}" 
+                                <input type="text" class="form-control" id="username" name="username"
+                                       value="{{ username or '' }}"
                                        placeholder="Enter username or email (e.g., user@domain.com)"
                                        pattern="[a-zA-Z0-9.\-_@]*"
                                        title="Alphanumeric characters, dots, hyphens, underscores, and @ symbol allowed">
@@ -22,7 +71,7 @@
                                     Leave empty to show all logged-in users, or enter a username or email address.
                                 </div>
                             </div>
-                            
+
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-search"></i> Run Finger
                             </button>
@@ -32,7 +81,7 @@
                         </form>
                     </div>
                 </div>
-                
+
                 <div class="card mt-3">
                     <div class="card-body">
                         <h6 class="card-title">ℹ️ About Finger</h6>
@@ -49,7 +98,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="col-md-8">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
@@ -91,7 +140,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="text-center mt-4">
             <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
                 <i class="fas fa-home"></i> Back to Home
@@ -99,6 +148,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <script>
 function clearForm() {
@@ -107,9 +157,11 @@ function clearForm() {
     window.location.href = "{{ url_for('finger') }}";
 }
 
+{% if not direct %}
 // Auto-focus on username input when page loads
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('username').focus();
 });
+{% endif %}
 </script>
 {% endblock %}
