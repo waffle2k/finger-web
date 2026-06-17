@@ -29,6 +29,25 @@ class Config:
     REMOTE_PRIVATE_KEY = os.environ.get('REMOTE_PRIVATE_KEY')  # Path to SSH private key file
     SCP_ENABLED = os.environ.get('SCP_ENABLED', 'false').lower() == 'true'
     
+    # Rate limiting (Flask-Limiter), keyed per client IP.
+    # The app only ever receives nginx cache *misses* (upstream caches 200s for
+    # 30s), so these limits throttle exactly the uncached finger-daemon lookups
+    # (e.g. username enumeration) without affecting the cached hot path.
+    # Limit strings are ';'-separated, e.g. "30 per minute;600 per hour".
+    RATELIMIT_ENABLED = os.environ.get('RATELIMIT_ENABLED', 'true').lower() == 'true'
+    RATELIMIT_STORAGE_URI = os.environ.get('RATELIMIT_STORAGE_URI') or 'memory://'
+    # Global default applied to every route.
+    RATELIMIT_DEFAULT = os.environ.get('RATELIMIT_DEFAULT') or '120 per minute;2000 per hour'
+    # Stricter limit for endpoints that shell out to the finger daemon.
+    RATELIMIT_FINGER = os.environ.get('RATELIMIT_FINGER') or '30 per minute;600 per hour'
+    # Limit for the authenticated upload endpoint (anti brute-force / spam).
+    RATELIMIT_UPLOAD = os.environ.get('RATELIMIT_UPLOAD') or '10 per minute;60 per hour'
+    # Number of trusted reverse-proxy hops in front of the app. nginx on the
+    # same host appends one X-Forwarded-For entry, so the default is 1. Without
+    # this the app only sees the Docker bridge gateway and every client would
+    # share a single rate-limit bucket.
+    PROXY_FORWARDED_COUNT = int(os.environ.get('PROXY_FORWARDED_COUNT', 1))
+
     # Basic authentication credentials - multiple users support
     # Environment variable format: "user1:pass1,user2:pass2"
     BASIC_AUTH_USERS_STR = os.environ.get('BASIC_AUTH_USERS', '')

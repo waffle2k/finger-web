@@ -1,6 +1,9 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from flask_httpauth import HTTPBasicAuth
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import subprocess
 import shlex
@@ -10,8 +13,32 @@ from config import Config
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# Trust the front-end nginx's X-Forwarded-For so the real client IP is used for
+# logging and rate limiting. Without this the app only ever sees the Docker
+# bridge gateway (172.20.0.1), so every client on the internet would share one
+# rate-limit bucket and log line.
+app.wsgi_app = ProxyFix(
+    app.wsgi_app,
+    x_for=app.config['PROXY_FORWARDED_COUNT'],
+    x_proto=1,
+    x_host=1,
+)
+
 # Initialize HTTP Basic Auth
 auth = HTTPBasicAuth()
+
+# Per-client-IP rate limiting. The app only ever receives nginx cache *misses*
+# (upstream caches 200s for 30s), so these limits throttle exactly the uncached
+# finger-daemon lookups (e.g. username enumeration) without touching the cached
+# hot path that legitimate Fediverse previews ride on.
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[l.strip() for l in app.config['RATELIMIT_DEFAULT'].split(';') if l.strip()],
+    storage_uri=app.config['RATELIMIT_STORAGE_URI'],
+    enabled=app.config['RATELIMIT_ENABLED'],
+    headers_enabled=True,
+)
 
 @auth.verify_password
 def verify_password(username, password):
@@ -111,17 +138,19 @@ def run_finger_command(cmd):
         return False, f"An error occurred: {str(e)}", True
 
 @app.route('/')
+@limiter.exempt
 def index():
-    """Home page route"""
+    """Home page route (exempt from limits; also serves the container healthcheck)"""
     return render_template('index.html', title='Home')
 
 @app.route('/finger', methods=['GET', 'POST'])
+@limiter.limit(lambda: app.config['RATELIMIT_FINGER'])
 def finger():
     """Finger command route"""
     result = None
     error = None
     username = request.args.get('user', '') or request.form.get('username', '')
-    
+
     if request.method == 'POST' or username:
         # Sanitize username input
         if username:
@@ -134,7 +163,7 @@ def finger():
         else:
             # Execute finger command without user (show all logged in users)
             cmd = ['finger']
-        
+
         if not error:
             # Execute the command with robust encoding handling
             success, output, is_error = run_finger_command(cmd)
@@ -142,10 +171,16 @@ def finger():
                 result = output
             else:
                 error = output
-    
+                app.logger.warning("finger lookup failed for %r from %s: %s",
+                                   username, get_remote_address(), output.strip()[:200])
+        elif username:
+            app.logger.warning("rejected invalid finger username %r from %s",
+                               username, get_remote_address())
+
     return render_template('finger.html', title='Finger', result=result, error=error, username=username)
 
 @app.route('/finger/<path:username>')
+@limiter.limit(lambda: app.config['RATELIMIT_FINGER'])
 def finger_direct(username):
     """Direct finger command route with username in URL"""
     result = None
@@ -156,21 +191,26 @@ def finger_direct(username):
         # Allow alphanumeric characters, dots, hyphens, underscores, and @ symbol for email-style usernames
         if not all(c.isalnum() or c in '.-_@' for c in username):
             error = "Invalid username format. Only alphanumeric characters, dots, hyphens, underscores, and @ symbol are allowed."
+            app.logger.warning("rejected invalid finger username %r from %s",
+                               username, get_remote_address())
         else:
             # Execute finger command with specific user
             cmd = ['finger', username]
-            
+
             # Execute the command with robust encoding handling
             success, output, is_error = run_finger_command(cmd)
             if success:
                 result = output
             else:
                 error = output
-    
+                app.logger.warning("finger lookup failed for %r from %s: %s",
+                                   username, get_remote_address(), output.strip()[:200])
+
     return render_template('finger.html', title=f'Finger - {username}', result=result, error=error, username=username)
 
 @app.route('/api/finger')
 @app.route('/api/finger/<path:username>')
+@limiter.limit(lambda: app.config['RATELIMIT_FINGER'])
 def api_finger(username=None):
     """JSON API endpoint for finger queries"""
     if username is None:
@@ -206,6 +246,7 @@ def api_info():
     })
 
 @app.route('/api/upload', methods=['POST'])
+@limiter.limit(lambda: app.config['RATELIMIT_UPLOAD'])
 @auth.login_required
 def upload_file():
     """File upload endpoint with basic authentication and SCP transfer"""
@@ -340,6 +381,22 @@ def upload_file():
             'error': f'Upload failed: {str(e)}',
             'status': 'error'
         }), 500
+
+@app.errorhandler(429)
+def ratelimit_handler(error):
+    """Handle rate-limit (429) responses; JSON for the API, HTML otherwise"""
+    app.logger.warning(
+        "Rate limit exceeded for %s on %s (%s)",
+        get_remote_address(), request.path, error.description,
+    )
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'error': 'Rate limit exceeded',
+            'detail': str(error.description),
+            'status': 'error',
+        }), 429
+    return render_template('429.html', title='Too Many Requests',
+                           detail=error.description), 429
 
 @app.errorhandler(404)
 def not_found_error(error):
