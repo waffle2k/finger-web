@@ -146,36 +146,31 @@ def index():
 @app.route('/finger', methods=['GET', 'POST'])
 @limiter.limit(lambda: app.config['RATELIMIT_FINGER'])
 def finger():
-    """Finger command route"""
+    """Finger search form.
+
+    Any submitted username is redirected to the canonical
+    ``/finger/<username>`` path so the lookup happens on a cacheable URL with
+    the search term in it — repeated searches for the same user are served from
+    the nginx response cache instead of re-running the finger command. A bare
+    ``/finger`` with no user shows the local system users (no daemon enumeration
+    risk: it never takes external input).
+    """
+    username = (request.args.get('user', '')
+                or request.args.get('username', '')
+                or request.form.get('username', '')).strip()
+
+    if username:
+        # Send the search to the cacheable canonical path.
+        return redirect(url_for('finger_direct', username=username))
+
+    # No user supplied: list logged-in system users.
     result = None
     error = None
-    username = request.args.get('user', '') or request.form.get('username', '')
-
-    if request.method == 'POST' or username:
-        # Sanitize username input
-        if username:
-            # Allow alphanumeric characters, dots, hyphens, underscores, and @ symbol for email-style usernames
-            if not all(c.isalnum() or c in '.-_@' for c in username):
-                error = "Invalid username format. Only alphanumeric characters, dots, hyphens, underscores, and @ symbol are allowed."
-            else:
-                # Execute finger command with specific user
-                cmd = ['finger', username]
-        else:
-            # Execute finger command without user (show all logged in users)
-            cmd = ['finger']
-
-        if not error:
-            # Execute the command with robust encoding handling
-            success, output, is_error = run_finger_command(cmd)
-            if success:
-                result = output
-            else:
-                error = output
-                app.logger.warning("finger lookup failed for %r from %s: %s",
-                                   username, get_remote_address(), output.strip()[:200])
-        elif username:
-            app.logger.warning("rejected invalid finger username %r from %s",
-                               username, get_remote_address())
+    success, output, is_error = run_finger_command(['finger'])
+    if success:
+        result = output
+    else:
+        error = output
 
     return render_template('finger.html', title='Finger', result=result, error=error, username=username)
 

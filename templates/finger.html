@@ -5,7 +5,10 @@
     <div class="col-lg-10 mx-auto">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
             <h1 class="h5 mb-0">🔍 Finger Command</h1>
-            <form method="POST" action="{{ url_for('finger') }}" class="d-flex" role="search">
+            <!-- GET so the search lands on a cacheable URL; JS sends it straight
+                 to /finger/<term>, and without JS the server redirects there. -->
+            <form method="GET" action="{{ url_for('finger') }}" class="d-flex" role="search"
+                  onsubmit="return gotoFinger(event)">
                 <input type="text" class="form-control form-control-sm me-2" id="username" name="username"
                        value="{{ username or '' }}"
                        placeholder="user@domain.com"
@@ -50,6 +53,16 @@
 </div>
 
 <script>
+// Navigate straight to the cacheable /finger/<term> path so the nginx response
+// cache is hit for repeated lookups (avoids a redirect round-trip).
+function gotoFinger(event) {
+    var term = document.getElementById('username').value.trim();
+    if (!term) { return true; }  // empty -> let GET /finger list system users
+    event.preventDefault();
+    window.location.href = "{{ url_for('finger') }}/" + encodeURIComponent(term);
+    return false;
+}
+
 function clearForm() {
     document.getElementById('username').value = '';
     // Optionally reload the page to clear results
